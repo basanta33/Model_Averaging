@@ -1,1 +1,2 @@
-# model_avg_Mk_SHDM
+# Model Averaging of Morphological Models (Mk and SHDM)
+
