@@ -1,0 +1,53 @@
+n_cats = 2
+n_max_states <- 7
+idx = 1
+# Draw the concentration parameter of the Dirichlet distribution of equilibrium state frequencies from an exponential hyperprior, and place a move on it.
+dir_alpha_2 ~ dnExponential( 1.0 )
+moves.append(mvScale(dir_alpha_2, lambda=1, weight=1.0))
+moves.append(mvScale(dir_alpha_2, lambda=0.1, weight=3.0))
+moves.append(mvScale(dir_alpha_2, lambda=0.01, weight=5.0))
+
+for (i in 2:n_max_states) {
+    morpho_bystate_2[i - 1] <- data
+    morpho_bystate_2[i - 1].setNumStatesPartition(i)
+    nc = morpho_bystate_2[i - 1].nchar()
+    if (nc > 0) {
+        #Place a symmetric Dirichlet prior on the equilibrium state frequencies
+        pi_prior_2[idx] := rep(dir_alpha_2, i)
+
+        for (j in 1:n_cats) {
+            # Draw a vector of equilibrium state frequencies from the specified prior
+            pi_2[idx][j] ~ dnDirichlet(pi_prior_2[idx])
+            moves.append(mvSimplexElementScale(pi_2[idx][j], alpha=10, weight=1.0))
+            # Reverse the pi[idx][j] vector
+            upper_2 = pi_2[idx][j].size()
+            for (k in 1:upper_2) {
+                ind = upper_2 + 1 - k
+                rev_pi_2[idx][j][k] <- pi_2[idx][j][ind]
+            }
+            # Create i-by-i rate matrices from both the original and reversed state
+            # frequency vectors.
+            Q_SHDM_2[idx][2*j - 1] := fnF81(pi_2[idx][j])
+            # Need to apply simplex() to convert rev_pi[idx][j] from type Probability[]
+            Q_SHDM_2[idx][2*j] := fnF81(simplex(rev_pi_2[idx][j]))
+        }
+        print("The mixture contains "+Q_SHDM_2[idx].size()+" rate matrices:")
+        for (l in 1:Q_SHDM_2[idx].size()) {
+            print(" ")
+            Q_SHDM_2[idx][l]
+        }
+        #Tell the model what the probability of a character going into any particular category of the rate matrix mixture. The flat Dirichlet prior used here says that a character is equally likely to be put into any category.
+        mat_prior_2[idx] <- rep(1, 2*n_cats)
+        matrix_probs_2[idx] ~ dnDirichlet(mat_prior_2[idx])
+
+        # Place move on the category assignment probabilities
+        moves.append(mvBetaSimplex(matrix_probs_2[idx], weight=3.0))
+        moves.append(mvDirichletSimplex(matrix_probs_2[idx], weight=1.5))
+
+        # Combine all of our elements into a CTMC. Because we have not observed any invariant sites, we specify the coding as 'variable'. Note that we are now feeding the site matrices to the CTMC.
+        #m_morph[idx] ~ dnPhyloCTMC(tree=phylogeny, siteRates=rates_morpho, Q=Q_SHDM_2[idx], type="Standard", siteMatrices=matrix_probs[idx])
+        # Clamp to the data
+        #m_morph[idx].clamp(morpho_bystate[i - 1])
+        idx = idx + 1
+    }
+}

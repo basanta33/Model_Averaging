@@ -1,1 +1,5 @@
+output*/
+*.log
+*.trees
+*.tre
 output/
