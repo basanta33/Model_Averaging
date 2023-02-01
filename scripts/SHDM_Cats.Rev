@@ -39,8 +39,8 @@ moves.append(mvNNI(tau, weight=2*nbr))
 moves.append(mvSPR(tau, weight=nbr))
 tree_length := phylogeny.treeLength()
 
-model_indicator ~ dnCategorical(simplex(1,1))
-moves.append(mvRandomGeometricWalk(model_indicator, weight=10.0, tune=FALSE))
+#model_indicator ~ dnCategorical(simplex(1,1))
+#moves.append(mvRandomGeometricWalk(model_indicator, weight=10.0, tune=FALSE))
 
 #################################################
 # Define the model of among-site rate variation #
@@ -55,10 +55,10 @@ site_rates := fnDiscretizeGamma(alpha, alpha, 4)
 ###########################################
 ###########################################
 #SHDM Model
-#source("scripts/SHDM_8.Rev")
-#source("scripts/SHDM_7.Rev")
-#source("scripts/SHDM_6.Rev")
-#source("scripts/SHDM_5.Rev")
+source("scripts/SHDM_8.Rev")
+source("scripts/SHDM_7.Rev")
+source("scripts/SHDM_6.Rev")
+source("scripts/SHDM_5.Rev")
 source("scripts/SHDM_4.Rev")
 source("scripts/SHDM_3.Rev")
 source("scripts/SHDM_2.Rev")
@@ -67,42 +67,25 @@ source("scripts/SHDM_2.Rev")
 ###########################################
 n_max_states <- 7
 idx = 1
-n_cats = 3
-
 morpho_bystate[1] <- data
 for (i in 2:n_max_states) {
-    #make local tmp copy of data
-    morpho_bystate[i] <- data
-    #only keep character blocks with state space equal to size i
-    morpho_bystate[i].setNumStatesPartition(i)
-    #get number of characters per character size with i-sized states
-    nc = morpho_bystate[i].nchar()
-    if (nc > 0) {
-          for (j in 1:n_cats) {
-
-        #for non-empty character blocks make i-by-i rate matrix
-          Q_Mk[idx][2*j - 1] := fnJC(i)
-          # need to apply simplex() to convert rev_pi[idx][j] from type Probability[]
-          Q_Mk[idx][2*j] := fnJC(i)
-        print("The mixture contains "+Q_Mk[idx].size()+" rate matrices:")
-        for (l in 1:Q_Mk[idx].size()) {
-            print(" ")
-            Q_Mk[idx][l]
-        }
-        }
-
-                mat_prior[idx] <- rep(1, 2*n_cats)
-                matrix_probs_Mk[idx] ~ dnDirichlet(mat_prior[idx])
-
-                # Place move on the category assignment probabilities
-                moves.append(mvBetaSimplex(matrix_probs_Mk[idx], weight=3.0))
-                moves.append(mvDirichletSimplex(matrix_probs_Mk[idx], weight=1.5))
-        #create model of evolution for the character block
-        #m_morph[idx] ~ dnPhyloCTMC(tree=phylogeny, Q=Q_Mk[idx], nSites=nc, siteRates=rates_morpho, type="Standard")
-        # attach the data
-        #m_morph[idx].clamp(morpho_bystate[i])
-        idx = idx + 1
-        idx
+    ebf = 1/i
+    cats := rep(ebf, i)
+    morpho_bystate[i-1] <- data
+    morpho_bystate[i-1].setNumStatesPartition(i)
+    nc = data.nchar()                             # get number of characters per character size with i-sized states
+    if (nc > 0) {                                            # for non-empty character blocks
+      for (x in 1:cats.size())
+      {
+        Q_Mk[x] := fnF81(simplex(cats))
+        }                                     # make i-by-i rate matrix
+                mat_prior_Mk <- rep(1,i)
+                matrix_probs_Mk ~ dnDirichlet(mat_prior_Mk)
+                matrix_probs_Mk
+                moves.append( mvBetaSimplex(matrix_probs_Mk, weight=3.0) )
+                moves.append( mvDirichletSimplex(matrix_probs_Mk, weight=1.5) )
+        i = i + 1
+        idx = idx + 1                                          # increment counter
     }
 }
 ###########################################
@@ -114,30 +97,23 @@ for (i in 2:n_max_states) {
 # (AKA the likelihood function) #
 #################################
 idx = 1
-model_indicator ~ dnCategorical(simplex(1,1,1,1))#,1,1,1,1))
+model_indicator ~ dnCategorical(simplex(1,1,1,1,1,1,1,1))
 moves.append( mvRandomGeometricWalk(model_indicator, weight=10.0, tune=FALSE) )
 
 n_max_states <- 7
 for (i in 2:n_max_states) {
     morpho_bystate[i] <- data
     morpho_bystate[i].setNumStatesPartition(i)
-    #Q_vec[idx] := v(Q_Mk[idx],Q_SHDM_4[idx], Q_SHDM_3[idx], Q_SHDM_2[idx]) #Q_SHDM_8[idx], Q_SHDM_7[idx], Q_SHDM_6[idx], Q_SHDM_5[idx],
-    #Q[idx] := Q_vec[idx][model_indicator]
-    Q_vec := v(Q_Mk,Q_SHDM_4, Q_SHDM_3, Q_SHDM_2)
+
+    Q_vec := v(Q_SHDM_8, Q_SHDM_7, Q_SHDM_6, Q_SHDM_5, Q_SHDM_4, Q_SHDM_3, Q_SHDM_2, Q_Mk)
     Q := Q_vec[model_indicator]
-    #matrix_probs_vec[idx] := v(matrix_probs_Mk[idx],matrix_probs_4[idx], matrix_probs_3[idx], matrix_probs_2[idx]) #matrix_probs_8[idx],matrix_probs_7[idx], matrix_probs_6[idx], matrix_probs_5[idx],
-    #matrix_probs[idx] := matrix_probs_vec[idx][model_indicator]
-    #matrix_probs[idx]
-    matrix_probs_vec := v(matrix_probs_Mk,matrix_probs_4, matrix_probs_3, matrix_probs_2) #matrix_probs_8,matrix_probs_7, matrix_probs_6, matrix_probs_5,
+
+    matrix_probs_vec := v(matrix_probs_8, matrix_probs_7, matrix_probs_6, matrix_probs_5, matrix_probs_4, matrix_probs_3, matrix_probs_2, matrix_probs_Mk)
     matrix_probs := matrix_probs_vec[model_indicator]
-    matrix_probs
-    #seq[idx] ~ dnPhyloCTMC(tree=phylogeny, Q=Q[idx], type="Standard", siteRates=site_rates, siteMatrices = matrix_probs[idx])
     seq ~ dnPhyloCTMC(tree=phylogeny, Q = Q, type="Standard", siteRates=site_rates, siteMatrices = matrix_probs)
-    #seq[idx].clamp(morpho_bystate[i]) # attach the observed data
     seq.clamp(morpho_bystate[i])
     print(i)
 }
-
 
 #########################
 # Make the model object #

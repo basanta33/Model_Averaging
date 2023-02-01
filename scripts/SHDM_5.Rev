@@ -2,52 +2,43 @@ n_cats = 5
 n_max_states <- 7
 idx = 1
 # Draw the concentration parameter of the Dirichlet distribution of equilibrium state frequencies from an exponential hyperprior, and place a move on it.
-dir_alpha_5 ~ dnExponential( 1.0 )
-moves.append(mvScale(dir_alpha_5, lambda=1, weight=1.0))
-moves.append(mvScale(dir_alpha_5, lambda=0.1, weight=3.0))
-moves.append(mvScale(dir_alpha_5, lambda=0.01, weight=5.0))
+#dir_alpha_5 ~ dnExponential( 1.0 )
+#moves.append(mvScale(dir_alpha_5, lambda=1, weight=1.0))
+#moves.append(mvScale(dir_alpha_5, lambda=0.1, weight=3.0))
+#moves.append(mvScale(dir_alpha_5, lambda=0.01, weight=5.0))
 
-for (i in 2:n_max_states) {
-    morpho_bystate_5[i - 1] <- data
-    morpho_bystate_5[i - 1].setNumStatesPartition(i)
-    nc = morpho_bystate_5[i - 1].nchar()
-    if (nc > 0) {
-        #Place a symmetric Dirichlet prior on the equilibrium state frequencies
-        pi_prior_5[idx] := rep(dir_alpha_5, i)
+#alpha_morpho ~ dnUniform( 0, 1E6 )
+#rates_morpho := fnDiscretizeGamma( alpha_morpho, alpha_morpho, 4 )
+#Moves on the parameters to the Gamma distribution.
+#moves.append(mvScale(alpha_morpho, lambda=1, weight=2.0))
 
-        for (j in 1:n_cats) {
-            # Draw a vector of equilibrium state frequencies from the specified prior
-            pi_5[idx][j] ~ dnDirichlet(pi_prior_5[idx])
-            moves.append(mvSimplexElementScale(pi_5[idx][j], alpha=10, weight=1.0))
-            # Reverse the pi[idx][j] vector
-            upper_5 = pi_5[idx][j].size()
-            for (k in 1:upper_5) {
-                ind = upper_5 + 1 - k
-                rev_pi_5[idx][j][k] <- pi_5[idx][j][ind]
-            }
-            # Create i-by-i rate matrices from both the original and reversed state
-            # frequency vectors.
-            Q_SHDM_5[idx][2*j - 1] := fnF81(pi_5[idx][j])
-            # Need to apply simplex() to convert rev_pi[idx][j] from type Probability[]
-            Q_SHDM_5[idx][2*j] := fnF81(simplex(rev_pi_5[idx][j]))
+beta_scale ~ dnLognormal( 0.0, sd=2*0.587405 )
+
+for (i in 1:n_max_states) {
+morpho_bystate_5[i] <- data
+    morpho_bystate_5[i].setNumStatesPartition(i)
+     nc = morpho_bystate_5[i].nchar()
+    # for non-empty character blocks
+      print("nchars:", nc)
+      print("nSTATES:", i)
+      cats := fnDiscretizeBeta(beta_scale, beta_scale, i)
+      for (x in 1:cats.size())
+      {
+        Q_SHDM_5[x] := fnF81(simplex(cats))
+        Q_SHDM_5[x]
         }
-        print("The mixture contains "+Q_SHDM_5[idx].size()+" rate matrices:")
-        for (l in 1:Q_SHDM_5[idx].size()) {
-            print(" ")
-            Q_SHDM_5[idx][l]
-        }
-        #Tell the model what the probability of a character going into any particular category of the rate matrix mixture. The flat Dirichlet prior used here says that a character is equally likely to be put into any category.
-        mat_prior_5[idx] <- rep(1, 2*n_cats)
-        matrix_probs_5[idx] ~ dnDirichlet(mat_prior_5[idx])
-
-        # Place move on the category assignment probabilities
-        moves.append(mvBetaSimplex(matrix_probs_5[idx], weight=3.0))
-        moves.append(mvDirichletSimplex(matrix_probs_5[idx], weight=1.5))
-
-        # Combine all of our elements into a CTMC. Because we have not observed any invariant sites, we specify the coding as 'variable'. Note that we are now feeding the site matrices to the CTMC.
-        #m_morph[idx] ~ dnPhyloCTMC(tree=phylogeny, siteRates=rates_morpho, Q=Q_SHDM_5[idx], type="Standard", siteMatrices=matrix_probs[idx])
-        # Clamp to the data
-        #m_morph[idx].clamp(morpho_bystate[i - 1])
+        mat_prior_5 <- rep(1,i)
+        matrix_probs_5 ~ dnDirichlet(mat_prior_5)
+        matrix_probs_5
+        moves.append( mvBetaSimplex(matrix_probs_5, weight=3.0) )
+        moves.append( mvDirichletSimplex(matrix_probs_5, weight=1.5) )
+        #m_morph[idx] ~ dnPhyloCTMC( tree=fbd_tree,
+                                    #Q=q,
+                                    #nSites=nc,
+                                    #siteRates=rates_morpho,
+                                    #branchRates = branch_rates,
+                                    #siteMatrices=matrix_probs,
+                                    #type="Standard")
+	      #m_morph[idx].clamp(morpho_bystate[i])
         idx = idx + 1
-    }
-}
+        }
