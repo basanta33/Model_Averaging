@@ -1,6 +1,6 @@
 ################################################################################
 #
-# RevBayes Example: Bayesian model averaging using reversible-jump MCMC over
+# Bayesian model averaging using reversible-jump MCMC over
 #            Mk and SHDM models using morphological character data.
 #
 ################################################################################
@@ -175,7 +175,6 @@ for (i in 2:n_max_states) {
     idx = idx + 1
     idx
     print(i)
-
 }
 
 #########################
@@ -204,8 +203,8 @@ mymcmc.run(generations=20000,tuningInterval=200)
 #########################################
 
 # start by reading in the tree trace
-treetrace = readTreeTrace("output/" + name + "/tree_samples.trees")
-map_tree = mapTree(treetrace,"output/" + name + "/MAP_tree.tree")
+#treetrace = readTreeTrace("output/" + name + "/tree_samples.trees")
+#map_tree = mapTree(treetrace,"output/" + name + "/MAP_tree.tree")
 
 # exit the program
 q()

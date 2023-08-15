@@ -1,0 +1,26 @@
+n_cats = 2
+n_max_states <- 7
+idx = 1
+
+beta_scale ~ dnLognormal( 0.0, sd=2*0.587405 )
+
+for (i in 1:n_max_states) {
+morpho_bystate_2[i] <- data
+    morpho_bystate_2[i].setNumStatesPartition(i)
+     nc = morpho_bystate_2[i].nchar()
+    # for non-empty character blocks
+      print("nchars:", nc)
+      print("nSTATES:", i)
+      cats := fnDiscretizeBeta(beta_scale, beta_scale, i)
+      for (x in 1:cats.size())
+      {
+        Q_SHDM_2[x] := fnF81(simplex(cats))
+        Q_SHDM_2[x]
+        }
+        mat_prior_2 <- rep(1,i)
+        matrix_probs_2 ~ dnDirichlet(mat_prior_2)
+        matrix_probs_2
+        moves.append( mvBetaSimplex(matrix_probs_2, weight=3.0) )
+        moves.append( mvDirichletSimplex(matrix_probs_2, weight=1.5) )
+        idx = idx + 1
+        }

@@ -22,13 +22,5 @@ morpho_bystate_6[i] <- data
         matrix_probs_6
         moves.append( mvBetaSimplex(matrix_probs_6, weight=3.0) )
         moves.append( mvDirichletSimplex(matrix_probs_6, weight=1.5) )
-        #m_morph[idx] ~ dnPhyloCTMC( tree=fbd_tree,
-                                    #Q=q,
-                                    #nSites=nc,
-                                    #siteRates=rates_morpho,
-                                    #branchRates = branch_rates,
-                                    #siteMatrices=matrix_probs,
-                                    #type="Standard")
-	      #m_morph[idx].clamp(morpho_bystate[i])
         idx = idx + 1
         }
