@@ -32,7 +32,7 @@ for (i in 1:nbr){
     moves.append(mvScale(br_lens[i]))
 }
 
-#`Create a starting tree and place moves.append on it.
+# Create a starting tree and place moves.append on it.
 tau ~ dnUniformTopology(taxa)
 phylogeny := treeAssembly(tau, br_lens)
 moves.append(mvNNI(tau, weight=2*nbr))
